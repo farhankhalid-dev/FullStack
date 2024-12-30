@@ -287,7 +287,7 @@ async function scrapeData(username, password) {
   });
 
   // Add a port variable
-  const PORT = process.env.PORT || 3001;
+  const PORT = process.env.PORT || 3000;
 
   // Start the server with error handling
   const server = app.listen(PORT, () => {

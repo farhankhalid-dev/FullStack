@@ -14,33 +14,27 @@ const Login = ({ onLoginSuccess }) => {
     setError('');
 
     try {
+      console.log('Making request to:', `${config.apiUrl}/api/scrape`);
+      
       const response = await fetch(`${config.apiUrl}/api/scrape`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          // Add CORS headers if needed
-          'Origin': window.location.origin,
         },
-        credentials: 'include', // Include cookies if needed
+        mode: 'cors',
         body: JSON.stringify({ username, password })
       });
 
-      if (!response.ok) {
-        // Handle HTTP errors
-        const errorData = await response.json();
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      console.log('Response status:', response.status);
       
+      const data = await response.json();
+      console.log('Response data:', data);
+
       if (!data.success) {
         throw new Error(data.error || 'Login failed');
       }
 
-      // Log the data to see what we're getting
-      console.log('Login successful:', data);
-      
       onLoginSuccess(data.data);
     } catch (err) {
       console.error('Login error:', err);
@@ -63,7 +57,6 @@ const Login = ({ onLoginSuccess }) => {
               onChange={(e) => setUsername(e.target.value)}
               required
               placeholder="Username"
-              autoComplete="username"
             />
           </div>
           <div className="form-group">
@@ -74,7 +67,6 @@ const Login = ({ onLoginSuccess }) => {
               onChange={(e) => setPassword(e.target.value)}
               required
               placeholder="Password"
-              autoComplete="current-password"
             />
           </div>
           {error && <div className="error-message">{error}</div>}
