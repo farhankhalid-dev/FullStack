@@ -1,6 +1,5 @@
 import React from "react";
 import "./styles/CourseRegistrationGeneric.css";
-import NewComponent from "./NewComponent.jsx";
 
 const StudentInfo = ({ studentData }) => {
   const infoItems = [
