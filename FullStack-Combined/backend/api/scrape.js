@@ -9,6 +9,7 @@ async function scrapeData(username, password) {
     jar,
     withCredentials: true,
     maxRedirects: 5,
+    timeout: 8000,
     headers: {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -243,10 +244,10 @@ async function scrapeData(username, password) {
 
 // Vercel serverless function handler
 module.exports = async (req, res) => {
-  // Enable CORS
+  // Handle CORS
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   res.setHeader(
     'Access-Control-Allow-Headers',
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
@@ -254,19 +255,25 @@ module.exports = async (req, res) => {
 
   // Handle OPTIONS request for CORS preflight
   if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
-
-  // Only allow POST requests
-  if (req.method !== 'POST') {
-    return res.status(405).json({ success: false, error: 'Method not allowed' });
+    return res.status(200).end();
   }
 
   try {
+    // Set a timeout for the entire operation
+    const timeout = setTimeout(() => {
+      throw new Error('Request timeout after 10 seconds');
+    }, 10000);
+
+    // Only allow POST requests
+    if (req.method !== 'POST') {
+      clearTimeout(timeout);
+      return res.status(405).json({ success: false, error: 'Method not allowed' });
+    }
+
     const { username, password } = req.body;
     
     if (!username || !password) {
+      clearTimeout(timeout);
       return res.status(400).json({ 
         success: false, 
         error: "Username and password are required" 
@@ -274,7 +281,9 @@ module.exports = async (req, res) => {
     }
 
     const data = await scrapeData(username, password);
+    clearTimeout(timeout);
     return res.status(200).json({ success: true, data });
+    
   } catch (error) {
     console.error('Error during scraping:', error);
     return res.status(error.message.includes('Invalid credentials') ? 401 : 500).json({ 
