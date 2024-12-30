@@ -1,25 +1,7 @@
-const express = require('express');
-const cors = require('cors');
 const axios = require('axios');
 const { CookieJar } = require('tough-cookie');
 const { wrapper } = require('axios-cookiejar-support');
 const cheerio = require('cheerio');
-
-// Wrap the entire server setup in a try-catch
-try {
-  const app = express();
-  
-  // Basic error handling middleware
-  app.use((err, req, res, next) => {
-    console.error('Error:', err);
-    res.status(500).json({ success: false, error: err.message });
-  });
-
-  // Enable CORS
-  app.use(cors());
-  
-  // Parse JSON bodies
-  app.use(express.json());
 
 async function scrapeData(username, password) {
   const jar = new CookieJar();
@@ -259,48 +241,45 @@ async function scrapeData(username, password) {
   }
 }
 
-  // Test endpoint to verify server is running
-  app.get('/test', (req, res) => {
-    res.json({ message: 'Server is running!' });
-  });
+// Vercel serverless function handler
+module.exports = async (req, res) => {
+  // Enable CORS
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+  );
 
-  app.post("/api/scrape", async (req, res) => {
-    try {
-      const { username, password } = req.body;
-      
-      if (!username || !password) {
-        return res.status(400).json({ 
-          success: false, 
-          error: "Username and password are required" 
-        });
-      }
+  // Handle OPTIONS request for CORS preflight
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
 
-      const data = await scrapeData(username, password);
-      res.json({ success: true, data });
-    } catch (error) {
-      console.error('Error during scraping:', error);
-      res.status(error.message.includes('Invalid credentials') ? 401 : 500).json({ 
+  // Only allow POST requests
+  if (req.method !== 'POST') {
+    return res.status(405).json({ success: false, error: 'Method not allowed' });
+  }
+
+  try {
+    const { username, password } = req.body;
+    
+    if (!username || !password) {
+      return res.status(400).json({ 
         success: false, 
-        error: error.message 
+        error: "Username and password are required" 
       });
     }
-  });
 
-  // Add a port variable
-  const PORT = process.env.PORT || 3001;
-
-  // Start the server with error handling
-  const server = app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-  });
-
-  // Handle server startup errors
-  server.on('error', (error) => {
-    console.error('Server startup error:', error);
-    process.exit(1);
-  });
-
-} catch (error) {
-  console.error('Fatal server error:', error);
-  process.exit(1);
-}
+    const data = await scrapeData(username, password);
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    console.error('Error during scraping:', error);
+    return res.status(error.message.includes('Invalid credentials') ? 401 : 500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+};
