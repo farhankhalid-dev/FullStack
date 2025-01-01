@@ -23,6 +23,7 @@
   
   .form-group {
     margin-bottom: 1rem;
+    display:flex;
   }
   
   .form-group input {
